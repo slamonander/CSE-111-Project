@@ -1,3 +1,12 @@
+DROP TABLE IF EXISTS RouteCounty;
+DROP TABLE IF EXISTS Segment;
+DROP TABLE IF EXISTS Postmile;
+DROP TABLE IF EXISTS Alignment;
+DROP TABLE IF EXISTS Direction;
+DROP TABLE IF EXISTS County;
+DROP TABLE IF EXISTS Route;
+DROP TABLE IF EXISTS temp_highways;
+
 CREATE TABLE temp_highways (
     OBJECTID INTEGER,
     Route TEXT,
@@ -70,15 +79,6 @@ CREATE TABLE Segment (
     FOREIGN KEY(pm_id) REFERENCES Postmile(pm_id)
 );
 
--- Junction table for many-to-many
-CREATE TABLE RouteCounty (
-    route_id INTEGER,
-    county_id INTEGER,
-    PRIMARY KEY(route_id, county_id),
-    FOREIGN KEY(route_id) REFERENCES Route(route_id),
-    FOREIGN KEY(county_id) REFERENCES County(county_id)
-);
-
 --POPULATE COMES AFTER ALL THE TABLES ARE MADE
 --Populate route table
 INSERT OR IGNORE INTO Route (route_number, pmrouteid, route_type)
@@ -128,13 +128,6 @@ JOIN County c ON t.County = c.county_code
 JOIN Direction d ON t.Direction = d.direction_code
 JOIN Alignment a ON t.AlignCode = a.align_code
 JOIN Postmile p ON t.PMPrefix = p.pm_prefix AND t.PMSuffix = p.pm_suffix;
-
---Populate route county table
-INSERT OR IGNORE INTO RouteCounty (route_id, county_id)
-SELECT DISTINCT r.route_id, c.county_id
-FROM temp_highways t
-JOIN Route r ON t.Route = r.route_number AND t.PMRouteID = r.pmrouteid
-JOIN County c ON t.County = c.county_code;
 
 --Drop the temp table
 DROP TABLE temp_highways;
