@@ -54,7 +54,7 @@ WHERE p.name = 'Rosemary';
 --8)user wants to search a plant by name
 SELECT plant_id, name
 FROM Plants
-WHERE name LIKE '%' || :search || '%';
+WHERE name LIKE '%Basil%';
 
 --9)User wants to display all plants in the database
 SELECT plant_id, name
@@ -64,12 +64,15 @@ ORDER BY name ASC;
 --10)User wants to filter plants based on certain care
 SELECT p.name, l.light_type, w.watering_type, h.humidity_type
 FROM Plants p
-JOIN Light l        ON p.light_id = l.light_id
-JOIN Watering w     ON p.watering_id = w.watering_id
-JOIN Humidity h     ON p.humidity_id = h.humidity_id
-WHERE (:light IS NULL OR l.light_type = :light)
-  AND (:water IS NULL OR w.watering_type = :water)
-  AND (:humidity IS NULL OR h.humidity_type = :humidity);
+JOIN Light l        
+ON p.light_id = l.light_id
+JOIN Watering w     
+ON p.watering_id = w.watering_id
+JOIN Humidity h     
+ON p.humidity_id = h.humidity_id
+WHERE l.light_type IN ('Sunny')
+  AND w.watering_type IN ('Infrequent')
+  AND h.humidity_type = 'Low';
 
 --11)User wants to show the care infomration for a plant
 SELECT p.name, l.light_type, w.watering_type, h.humidity_type,

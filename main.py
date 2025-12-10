@@ -1,7 +1,7 @@
 import sqlite3
 
 # Connect to your database
-conn = sqlite3.connect('/Users/angel/Documents/CSE-111-Project-1/plants.db')
+conn = sqlite3.connect('/Users/georgeperez/Desktop/CSE111 Docker/project/plants.db')
 cur = conn.cursor()
 
 # -----------------------------
@@ -105,9 +105,8 @@ def add_plant(name, light=None, watering=None, humidity=None, temperature=None,
     conn.commit()
     print(f"Added plant: {name}")
 
-def edit_plant(plant_id):
+def edit_plant(plant_id, **updates):
     print("Leave blank any attribute you don't want to change.")
-
     name = input("Name: ").strip() or None
     light = input("Light: ").strip() or None
     watering = input("Watering: ").strip() or None
@@ -116,7 +115,6 @@ def edit_plant(plant_id):
     fertilizer = input("Fertilizer: ").strip() or None
     pruning = input("Pruning: ").strip() or None
     propagation = input("Propagation: ").strip() or None
-
     updates = {}
     if name: updates["name"] = name
     if light: updates["light_id"] = get_or_create_id('Light', 'light_type', light)
@@ -126,22 +124,17 @@ def edit_plant(plant_id):
     if fertilizer: updates["fertilizer_id"] = get_or_create_id('Fertilizer', 'fertilizer_type', fertilizer)
     if pruning: updates["pruning_id"] = get_or_create_id('Pruning', 'pruning_type', pruning)
     if propagation: updates["propagation_id"] = get_or_create_id('Propagation', 'propagation_type', propagation)
-
     # Nothing to update
     if not updates:
         print("No changes made.")
         return
-
     # Build SQL dynamically
     set_clause = ", ".join([f"{col} = ?" for col in updates.keys()])
     values = list(updates.values())
     values.append(plant_id)
-
     cur.execute(f"UPDATE Plants SET {set_clause} WHERE plant_id = ?", values)
     conn.commit()
-
     print("Plant updated successfully!")
-
 
 def delete_plant(plant_id):
     cur.execute("DELETE FROM Plants WHERE plant_id = ?", (plant_id,))
@@ -179,18 +172,36 @@ def show_favorites(user_id):
     for row in rows:
         print(row)
 
-def filter_plants(light=None, watering=None, humidity=None):
-    query = "SELECT p.name, l.light_type, w.watering_type, h.humidity_type FROM Plants p JOIN Light l ON p.light_id=l.light_id JOIN Watering w ON p.watering_id=w.watering_id JOIN Humidity h ON p.humidity_id=h.humidity_id WHERE 1=1"
+def filter_plants(light=None, watering=None, humidity=None, temperature=None, fertilizer=None, pruning=None, propagation=None):
+    query = """
+    SELECT p.name, l.light_type, w.watering_type, h.humidity_type,
+        t.temperature_type, f.fertilizer_type, pr.pruning_type, pg.propagation_type
+    FROM Plants p
+    JOIN Light l ON p.light_id = l.light_id
+    JOIN Watering w ON p.watering_id = w.watering_id
+    JOIN Humidity h ON p.humidity_id = h.humidity_id
+    JOIN Temperature t ON p.temperature_id = t.temperature_id
+    JOIN Fertilizer f ON p.fertilizer_id = f.fertilizer_id
+    JOIN Pruning pr ON p.pruning_id = pr.pruning_id
+    JOIN Propagation pg ON p.propagation_id = pg.propagation_id
+    WHERE 1=1
+    """    
     params = []
-    if light:
-        query += " AND l.light_type = ?"
-        params.append(light)
-    if watering:
-        query += " AND w.watering_type = ?"
-        params.append(watering)
-    if humidity:
-        query += " AND h.humidity_type = ?"
-        params.append(humidity)
+    filters = {
+        "l.light_type": light,
+        "w.watering_type": watering,
+        "h.humidity_type": humidity,
+        "t.temperature_type": temperature,
+        "f.fertilizer_type": fertilizer,
+        "pr.pruning_type": pruning,
+        "pg.propagation_type": propagation
+    }
+
+    for col, val in filters.items():
+        if val:
+            query += f" AND {col} = ?"
+            params.append(val)
+        
     cur.execute(query, tuple(params))
     rows = cur.fetchall()
     for row in rows:
@@ -228,7 +239,11 @@ def main_menu():
             light = input("Filter by light (leave blank to skip): ").strip() or None
             watering = input("Filter by watering (leave blank to skip): ").strip() or None
             humidity = input("Filter by humidity (leave blank to skip): ").strip() or None
-            filter_plants(light, watering, humidity)
+            temperature = input("Filter by temperature (leave blank to skip): ").strip() or None
+            fertilizer = input("Filter by fertilizer (leave blank to skip): ").strip() or None
+            pruning = input("Filter by pruning (leave blank to skip): ").strip() or None
+            propagation = input("Filter by propagation (leave blank to skip): ").strip() or None
+            filter_plants(light, watering, humidity, temperature, fertilizer, pruning, propagation)
             
         elif choice == "6":
             show_favorites(user_id)
@@ -244,7 +259,6 @@ def plant_operations_menu():
     query = input("Enter plant ID or name: ").strip()
     results = search_plant_by_name_or_id(query)
     if not results:
-        print("Plant not found.")
         return
 
     plant_id = results[0][0]  # take first match
